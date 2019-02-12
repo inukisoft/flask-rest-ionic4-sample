@@ -69,4 +69,4 @@ def get_product(id_p):
 
 
 if __name__ == '__main__':
-	app.run(host='0.0.0.0', port=7776, debug=True)
+	app.run(host='0.0.0.0', port=7775, debug=True)
