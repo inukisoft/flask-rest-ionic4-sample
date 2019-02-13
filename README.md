@@ -18,11 +18,15 @@ Construyendo la imagen del proyecto
 
 Esta imagen se basa en Linux Alpine y Python, se pondrà el còdigo en un directorio /code y luego se ejecuta el app.py, hay que estar situado dentro del directorio del proyecto:
 
-docker build -t inukisoft/crud-angular-ionic-example .
+docker build -t inukisoft/flask-rest-ionic4-sample .
 
 Luego corriendo la imagen, asociando al puerto 3000 (interior del contenedor) con un puerto 6666 de nuestro host, tendríamos: 
 
-docker run -p 6666:3000 --name crud-angular-ionic-example inukisoft/crud-angular-ionic-example
+docker run -p 6666:3000 --name flask-rest-ionic4-sample inukisoft/flask-rest-ionic4-sample
+
+si se monta en el amazon, 
+
+docker run -p 80:7775 --name flask-rest-ionic4-sample inukisoft/flask-rest-ionic4-sample
 
 Usar localhost en vez de la ip de la máquina.
 

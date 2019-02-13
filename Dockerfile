@@ -5,5 +5,5 @@ WORKDIR /code
 ADD . /code/
 RUN pip install -r requirements.txt
 
-EXPOSE 3000
+EXPOSE 7775
 CMD ["python", "/code/app.py"]
