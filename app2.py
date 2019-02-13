@@ -13,6 +13,8 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 api.add_resource(ProdListResource, '/api/v1/products/', endpoint='products')
 api.add_resource(ProdResource, '/api/v1/products/<string:id>', endpoint='product')
 
+api.add_resource(EquipoListResource, '/api/v1/equipos/', endpoint='equipos')
+api.add_resource(AreaListResource, '/api/v1/areas/', endpoint='areas')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7775, debug=True)
