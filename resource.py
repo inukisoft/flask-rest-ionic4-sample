@@ -5,6 +5,7 @@ from flask_restful import Resource
 from flask_restful import fields
 from flask_restful import marshal_with
 
+import sqlite3
 
 products = [
     {
@@ -165,7 +166,6 @@ areas = [
 ];
  
 
-
 equipo_fields = {
     '_id': fields.Integer,
     'equipo': fields.String
@@ -184,11 +184,75 @@ prod_fields = {
     'updated_at': fields.String
 }
 
+cuasi_fields = {
+    'id' : fields.Integer,
+    'rut' : fields.String,
+    'area' : fields.Integer,
+    'equipo': fields.Integer,
+    'fechacuasi': fields.String,
+    'describa': fields.String,
+    'accion': fields.Integer,
+    'informo': fields.Integer,
+    'tipotrabajador': fields.String  
+}
+
 parser = reqparse.RequestParser()
 parser.add_argument('prod_name')
 parser.add_argument('prod_desc')
 parser.add_argument('prod_price')
 parser.add_argument('updated_at')
+
+# parser para los nuevos cuasi accidentes y su almacenamiento en una bd
+parser_cuasi = reqparse.RequestParser()
+parser_cuasi.add_argument('rut')
+parser_cuasi.add_argument('area')
+parser_cuasi.add_argument('equipo')
+parser_cuasi.add_argument('fechacuasi')
+parser_cuasi.add_argument('describa')
+parser_cuasi.add_argument('accion')
+parser_cuasi.add_argument('informo')
+parser_cuasi.add_argument('tipotrabajador')
+
+
+class CuasiResource(Resource):
+
+  @marshal_with(cuasi_fields)
+  def post(self, id):
+
+    print("en el post - add de un cuasi")
+    
+    parsed_args = parser_cuasi.parse_args()
+    conn = sqlite3.connect('db/cuasiaccidente.db')
+    c = conn.cursor()
+    params = [parsed_args['rut'], parsed_args['area'], parsed_args['equipo'], parsed_args['fechacuasi'], parsed_args['describa'], parsed_args['accion'], parsed_args['informo'], parsed_args['tipotrabajador']]
+    # a insertar los valores
+    c.execute('insert into cuasi_accidentes (cuasi_rut, cuasi_area, cuasi_equipo, cuasi_fechacuasi, cuasi_describa, cuasi_accion, cuasi_informo, cuasi_tipotrabajador) values (?,?,?,?,?,?,?)', params) 
+    # recuperemos el último valor ingresado 
+    last_id = c.lastrowid
+    print("last id: " , last_id)
+
+    con.close()
+
+    return {}, 201 
+
+class CuasiListResource(Resource):
+
+  @marshal_with(cuasi_fields)
+  def get(self):
+
+    conn = sqlite3.connect('db/cuasiaccidente.db')
+    c = conn.cursor()
+    c.execute('select * from cuasi_accidentes')
+    rows = c.fetchall()
+    salida = []
+
+    for row in rows:
+      fila = {'id': row[0], 'rut': row[1], 'area': row[2], 'equipo': row[3], 'fechacuasi':row[4], 'describa': row[5], 'accion': row[6], 'informo': row[7], 'tipotrabajador': row[8]}
+      salida.append(fila)
+
+    return salida, 200
+
+
 
 
 class ProdResource(Resource):
