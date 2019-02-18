@@ -1,44 +1,22 @@
-from datetime import datetime
+from flask import Flask, request, jsonify
+from flask import make_response
+from flask_cors import CORS, cross_origin
+from flask_restful import reqparse, abort, Api, Resource
+from resource import *
+
 from flask_restful import reqparse
 from flask_restful import abort
 from flask_restful import Resource
 from flask_restful import fields
 from flask_restful import marshal_with
 
+
+from io import StringIO
+import io
+from datetime import datetime
+
 import sqlite3
-
-products = [
-    {
-        '_id': 1,
-        'prod_name':  'Buy groceries 1',
-        'prod_desc':  'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'prod_price': 100,
-        'updated_at': '2012-12-31 15:54:42.915204'
-    },
-    {
-        '_id': 2,
-        'prod_name':  'Buy groceries 2',
-        'prod_desc':  'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'prod_price': 100,
-        'updated_at': '2012-12-31 15:54:42.915204'
-    },
-    {
-        '_id': 3,
-        'prod_name':  'Buy groceries 3',
-        'prod_desc':  'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'prod_price': 100,
-        'updated_at': '2012-12-31 15:54:42.915204'
-    },
-    {
-        '_id': 4,
-        'prod_name':  'Buy groceries 4',
-        'prod_desc':  'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'prod_price': 100,
-        'updated_at': '2012-12-31 15:54:42.915204'
-    },
-
-];
-
+import csv
 
 equipos = [
   {
@@ -214,92 +192,84 @@ parser_cuasi.add_argument('informo')
 parser_cuasi.add_argument('tipotrabajador')
 
 
-class CuasiResource(Resource):
+app = Flask(__name__)
+cors = CORS(app, resources={r"/api/v1/*": {"origins": "http://localhost:8100"}})
+app.config['CORS_HEADERS'] = 'Content-Type'
 
-  @marshal_with(cuasi_fields)
-  def post(self):
+@app.after_request
+def after_request(response):
 
-    print("en el post - add de un cuasi")
+  print("en after_request :", response)	
+  response.headers.add('Access-Control-Allow-Origin', '*')
+  response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+  response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+  return response
+
+
+# endpoint to create new cuasi
+@app.route("/api/v1/cuasis", methods=["POST"])
+def add_cuasi():
+  print("en el post - add de un cuasi")
     
-    parsed_args = parser_cuasi.parse_args()
-    conn = sqlite3.connect('db/cuasiaccidente.db')
-    c = conn.cursor()
-    params = [parsed_args['rut'], parsed_args['area'], parsed_args['equipo'], parsed_args['fechacuasi'], parsed_args['describa'], parsed_args['accion'], parsed_args['informo'], parsed_args['tipotrabajador']]
-    # a insertar los valores
-    c.execute('insert into cuasi_accidentes (cuasi_rut, cuasi_area, cuasi_equipo, cuasi_fechacuasi, cuasi_describa, cuasi_accion, cuasi_informo, cuasi_tipotrabajador) values (?,?,?,?,?,?,?)', params) 
-    # recuperemos el último valor ingresado 
-    last_id = c.lastrowid
-    print("last id: " , last_id)
+  conn = sqlite3.connect('db/cuasiaccidente.db')
+  c = conn.cursor()
+  params = [request.json['rut'], request.json['area'], request.json['equipo'], request.json['fechacuasi'], request.json['describa'], request.json['accion'], request.json['informo'], request.json['tipotrabajador']]
+  # a insertar los valores
+  c.execute('insert into cuasi_accidentes (cuasi_rut, cuasi_area, cuasi_equipo, cuasi_fechacuasi, cuasi_describa, cuasi_accion, cuasi_informo, cuasi_tipotrabajador) values (?,?,?,?,?,?,?,?)', params) 
+  # recuperemos el último valor ingresado 
+  last_id = c.lastrowid
+  print("last id: " , last_id)
+  conn.commit()
 
-    con.close()
+  conn.close()
+  
+  return jsonify({'id' : last_id})
 
-    return {}, 201 
+# endpoint to show all users
+@app.route("/api/v1/areas", methods=["GET"])
+def get_areas():
+  return jsonify(areas)
 
-class CuasiListResource(Resource):
+# endpoint to show all users
+@app.route("/api/v1/equipos", methods=["GET"])
+def get_equipos():
+  return jsonify(equipos)
 
-  @marshal_with(cuasi_fields)
-  def get(self):
+# endpoint to show all users
+@app.route("/api/v1/cuasis", methods=["GET"])
+def get_cuasiaccidentes():
+  conn = sqlite3.connect('db/cuasiaccidente.db')
+  c = conn.cursor()
+  c.execute('select * from cuasi_accidentes')
+  rows = c.fetchall()
+  salida = []
 
-    conn = sqlite3.connect('db/cuasiaccidente.db')
-    c = conn.cursor()
-    c.execute('select * from cuasi_accidentes')
-    rows = c.fetchall()
-    salida = []
+  for row in rows:
+    fila = {'id': row[0], 'rut': row[1], 'area': row[2], 'equipo': row[3], 'fechacuasi':row[4], 'describa': row[5], 'accion': row[6], 'informo': row[7], 'tipotrabajador': row[8]}
+    salida.append(fila)
 
-    for row in rows:
-      fila = {'id': row[0], 'rut': row[1], 'area': row[2], 'equipo': row[3], 'fechacuasi':row[4], 'describa': row[5], 'accion': row[6], 'informo': row[7], 'tipotrabajador': row[8]}
-      salida.append(fila)
+  return jsonify(salida)
 
-    return salida, 200
+@app.route("/api/v1/cuasis/<format>", methods=["GET"])
+def get_cuasiaccidentes_format(format):
+  conn = sqlite3.connect('db/cuasiaccidente.db')
+  c = conn.cursor()
+  c.execute('select * from cuasi_accidentes order by cuasi_id desc')
+  rows = c.fetchall()
+
+  dest = StringIO()
+  writer = csv.writer(dest)
+  writer.writerow(["cuasi_id","rut_reportador","area","equipo","fecha_cuasi","descripcion","accion_inm","informo_jefe","tipo_trabajador"])
+  for row in rows: 
+  	writer.writerow([row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]])
+
+
+  output = make_response(dest.getvalue())
+  output.headers["Content-Disposition"] = "attachment; filename=cuasiaccidentes-reporte.csv"
+  output.headers["Content-type"] = "text/csv"
+  return output
 
 
 
-
-class ProdResource(Resource):
-
-  @marshal_with(prod_fields)
-  def get(self, id):
-    for i in products: 
-      print ("elemento : " , i)
-      print ("elemento i['_id']", i['_id'])
-      if int(i['_id']) == int(id):
-        return i, 200
-    return {}, 200
-
-  def put(self, id):
-    
-    parsed_args = parser.parse_args()
-    for i in products: 
-
-      if int(i['_id']) == int(id):
-        # editamos todo el elemento con lo nuevo que recibimos
-        i['prod_name'] = parsed_args['prod_name']
-        i['prod_desc'] = parsed_args['prod_desc']
-        i['prod_price'] = parsed_args['prod_price']
-        i['updated_at'] = parsed_args['updated_at'] 
-
-        return i, 200
-    
-    return {}, 200
-
-  def delete(self, id):
-    return {}, 204
-
-class ProdListResource(Resource):
-
-  @marshal_with(prod_fields)
-  def get(self):
-    return products, 200
-
-class AreaListResource(Resource):
-
-  @marshal_with(area_fields)
-  def get(self):
-    return areas, 200
-
-class EquipoListResource(Resource):
-
-  @marshal_with(equipo_fields)
-  def get(self):
-    return equipos, 200
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=7775, debug=True)

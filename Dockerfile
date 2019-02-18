@@ -6,4 +6,4 @@ ADD . /code/
 RUN pip install -r requirements.txt
 
 EXPOSE 7775
-CMD ["python", "/code/app2.py"]
+CMD ["python", "/code/app3.py"]
